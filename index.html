@@ -7,29 +7,28 @@
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            background: #f4f4f4; 
+            background: #fff; 
             margin: 0; 
-            padding: 10px; 
+            padding: 20px; 
             height: 100vh;
             overflow: hidden;
         }
-        h2 { text-align: center; color: #333; margin: 5px 0; font-size: 18px; }
+        h2 { text-align: center; color: #000; margin: 10px 0; font-size: 24px; }
         #sudoku-container { 
             display: flex; 
             justify-content: center; 
-            align-items: flex-start; 
-            gap: 20px; 
-            margin: 10px 0; 
-            height: calc(100vh - 50px);
+            align-items: center; 
+            gap: 40px; 
+            height: calc(100vh - 80px);
         }
         #sudoku-grid { 
             display: grid; 
-            grid-template-columns: repeat(9, 45px); 
-            grid-template-rows: repeat(9, 45px); 
+            grid-template-columns: repeat(9, 60px); 
+            grid-template-rows: repeat(9, 60px); 
             gap: 2px; 
-            border: 3px solid #333; 
-            background: #333; 
-            padding: 3px; 
+            border: 2px solid #000; 
+            background: #000; 
+            padding: 2px; 
         }
         .sudoku-cell { 
             width: 50px; 
@@ -65,102 +64,46 @@
         #controls { 
             display: flex; 
             flex-direction: column; 
-            gap: 5px; 
-            min-width: 180px; 
-            max-height: calc(100vh - 80px);
-            overflow-y: auto;
+            gap: 10px; 
+            min-width: 120px; 
         }
         button { 
-            padding: 6px 10px; 
-            background: #2196f3; 
+            padding: 10px; 
+            background: #000; 
             color: white; 
             border: none; 
-            border-radius: 3px; 
             cursor: pointer; 
-            font-size: 12px; 
-            transition: all 0.2s ease;
-            margin: 1px 0;
+            font-size: 16px; 
         }
-        button:hover { 
-            background: #1976d2; 
-            transform: translateY(-1px);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
-        h3, h4 { 
-            color: #333; 
-            margin: 8px 0 3px 0; 
+        button:hover { background: #333; }
+        #stats { 
+            background: #f9f9f9; 
+            padding: 10px; 
+            margin-top: 10px; 
             font-size: 14px;
         }
-        small { 
-            color: #666; 
-            font-style: italic; 
-            font-size: 10px;
-        }
-        #stats { 
-            background: #fff; 
-            padding: 8px; 
-            border-radius: 3px; 
-            margin-top: 5px; 
-            font-size: 12px;
-        }
-        #speed-control { margin: 5px 0; }
-        #speed-slider { width: 100%; }
     </style>
 </head>
 <body>
-    <h2>🧩 Sudoku Solver - Backtracking Algorithm Visualizer</h2>
+    <h2>Sudoku Solver</h2>
     <div id="sudoku-container">
         <div id="sudoku-grid"></div>
         <div id="controls">
-            <!-- Puzzle Loading Controls -->
-            <h3>📋 Load Puzzles</h3>
-            <button onclick="loadEasyPuzzle()" title="Load an easy puzzle with more given numbers">🟢 Easy Puzzle</button>
-            <button onclick="loadMediumPuzzle()" title="Load a medium difficulty puzzle">🟡 Medium Puzzle</button>
-            <button onclick="loadHardPuzzle()" title="Load a challenging puzzle with fewer clues">🔴 Hard Puzzle</button>
-            <button onclick="clearGrid()" title="Clear the grid to enter your own puzzle">🗑️ Clear Grid</button>
-            
-            <hr>
-            
-            <!-- AI Solver Controls -->
-            <h3>🤖 AI Solver</h3>
-            <button id="solve-btn" onclick="solveSudoku()" title="Watch the backtracking algorithm solve step-by-step">🎬 Solve with Animation</button>
-            <button onclick="solveInstant()" title="Solve immediately without animation - shows final result instantly">⚡ Solve Instantly</button>
-            <button onclick="stopSolving()" title="Stop the current solving process">⏹️ Stop</button>
-            
-            <!-- Speed Control -->
-            <div id="speed-control">
-                <h4>🎚️ Animation Speed</h4>
-                <label>Speed: <span id="speed-value">0.1ms</span></label>
-                <input type="range" id="speed-slider" min="0.1" max="5" step="0.1" value="0.1" oninput="updateSpeed(this.value)" 
-                       title="0.1ms = Lightning Fast, 5ms = Slower">
-                <small>💡 Lower = Faster</small>
-            </div>
-            
-            <!-- Statistics -->
+            <button onclick="loadEasyPuzzle()">Easy</button>
+            <button onclick="loadMediumPuzzle()">Medium</button>
+            <button onclick="loadHardPuzzle()">Hard</button>
+            <button onclick="clearGrid()">Clear</button>
+            <button id="solve-btn" onclick="solveSudoku()">Solve</button>
             <div id="stats">
-                <h4>📊 Algorithm Statistics:</h4>
-                <div title="Number of cells the algorithm attempted to fill">🔢 Steps: <span id="steps">0</span></div>
-                <div title="Times the algorithm had to undo and try different numbers">⬅️ Backtracks: <span id="backtracks">0</span></div>
-                <div title="Total time taken to solve the puzzle">⏱️ Time: <span id="time">0ms</span></div>
-                <div title="Current solving status">📍 Status: <span id="status">Ready</span></div>
-            </div>
-            
-            <!-- Instructions -->
-            <div style="background: #f0f8ff; padding: 5px; border-radius: 3px; margin-top: 5px;">
-                <h4>📝 Quick Guide:</h4>
-                <ul style="font-size: 10px; margin: 2px 0; padding-left: 15px;">
-                    <li>Click cells → type 1-9</li>
-                    <li>Animation = step-by-step</li>
-                    <li>Instant = immediate result</li>
-                </ul>
+                <div>Steps: <span id="steps">0</span></div>
+                <div>Time: <span id="time">0ms</span></div>
             </div>
         </div>
     </div>
     <script>
         let grid = Array.from({length: 9}, () => Array(9).fill(0));
         let solving = false;
-        let speed = 0.1; // Ultra fast visualization - 0.1ms
+        let speed = 2.4; // Fixed speed: 4200 steps in ~10 seconds
         let steps = 0;
         let backtracks = 0;
         let startTime = 0;
@@ -376,13 +319,11 @@
             resetStats();
             clearVisualEffects();
             document.getElementById('solve-btn').disabled = true;
-            document.getElementById('status').textContent = 'Solving...';
             
             const success = await solveBacktracking(grid, true);
             
             solving = false;
             document.getElementById('solve-btn').disabled = false;
-            document.getElementById('status').textContent = success ? 'Solved!' : 'No solution found';
             
             if (success) {
                 // Mark all cells as solved
@@ -395,53 +336,8 @@
             }
         }
 
-        function solveInstant() {
-            resetStats();
-            startTime = Date.now();
-            
-            const gridCopy = grid.map(row => [...row]);
-            const success = solveBacktrackingInstant(gridCopy);
-            
-            if (success) {
-                grid = gridCopy;
-                displayGrid();
-                document.getElementById('status').textContent = 'Solved Instantly!';
-                updateStats();
-            } else {
-                document.getElementById('status').textContent = 'No solution found';
-            }
-        }
-
-        function solveBacktrackingInstant(grid) {
-            const empty = findEmptyCell(grid);
-            if (!empty) return true;
-            
-            const [row, col] = empty;
-            
-            for (let num = 1; num <= 9; num++) {
-                if (isValid(grid, row, col, num)) {
-                    grid[row][col] = num;
-                    steps++;
-                    
-                    if (solveBacktrackingInstant(grid)) {
-                        return true;
-                    }
-                    
-                    grid[row][col] = 0;
-                    backtracks++;
-                }
-            }
-            
-            return false;
-        }
-
         function stopSolving() {
             solving = false;
-        }
-
-        function updateSpeed(value) {
-            speed = parseInt(value);
-            document.getElementById('speed-value').textContent = value + 'ms';
         }
 
         function sleep(ms) {
@@ -456,7 +352,6 @@
 
         function updateStats() {
             document.getElementById('steps').textContent = steps;
-            document.getElementById('backtracks').textContent = backtracks;
             const elapsed = Date.now() - startTime;
             document.getElementById('time').textContent = elapsed + 'ms';
         }

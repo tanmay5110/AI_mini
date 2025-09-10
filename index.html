@@ -3,132 +3,422 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maze Pathfinding Visualizer (A*)</title>
+    <title>Sudoku Solver - Backtracking Algorithm</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; }
-        #maze { display: grid; grid-template-columns: repeat(20, 25px); grid-gap: 2px; margin: 30px auto; width: max-content; }
-        .cell { width: 25px; height: 25px; background: #fff; border: 1px solid #ccc; cursor: pointer; }
-        .cell.wall { background: #333; }
-        .cell.start { background: #4caf50; }
-        .cell.end { background: #e91e63; }
-        .cell.visited { background: #90caf9; }
-        .cell.path { background: #ffd600; }
-        #controls { text-align: center; margin-top: 20px; }
-        button { margin: 0 5px; padding: 8px 16px; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #f4f4f4; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        h2 { text-align: center; color: #333; }
+        #sudoku-container { 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; 
+            gap: 30px; 
+            margin: 20px 0; 
+        }
+        #sudoku-grid { 
+            display: grid; 
+            grid-template-columns: repeat(9, 50px); 
+            grid-template-rows: repeat(9, 50px); 
+            gap: 2px; 
+            border: 3px solid #333; 
+            background: #333; 
+            padding: 3px; 
+        }
+        .sudoku-cell { 
+            width: 50px; 
+            height: 50px; 
+            background: #fff; 
+            border: 1px solid #ccc; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 18px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+        }
+        .sudoku-cell:nth-child(3n):not(:nth-child(9n)) { border-right: 2px solid #333; }
+        .sudoku-cell:nth-child(n+19):nth-child(-n+27),
+        .sudoku-cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #333; }
+        .sudoku-cell.given { background: #e3f2fd; color: #1565c0; }
+        .sudoku-cell.solving { background: #ffeb3b; animation: pulse 0.5s; }
+        .sudoku-cell.backtrack { background: #ffcdd2; animation: shake 0.3s; }
+        .sudoku-cell.solved { background: #c8e6c9; }
+        .sudoku-cell input { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+            text-align: center; 
+            font-size: 18px; 
+            font-weight: bold; 
+            background: transparent; 
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        #controls { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            min-width: 200px; 
+        }
+        button { 
+            padding: 10px 15px; 
+            background: #2196f3; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 14px; 
+        }
+        button:hover { background: #1976d2; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #stats { 
+            background: #fff; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin-top: 10px; 
+        }
+        #speed-control { margin: 10px 0; }
+        #speed-slider { width: 100%; }
     </style>
 </head>
 <body>
-    <h2 style="text-align:center;">Maze Pathfinding Visualizer (A*)</h2>
-    <div id="maze"></div>
-    <div id="controls">
-    <button onclick="setMode('start')">Set Start</button>
-    <button onclick="setMode('end')">Set End</button>
-    <button onclick="setMode('wall')">Draw Walls</button>
-    <button onclick="runAStar()">Run A*</button>
-    <button onclick="generateRandomMaze()">Random Maze</button>
-    <button onclick="resetMaze()">Reset</button>
+    <h2>Sudoku Solver - Backtracking Algorithm Visualizer</h2>
+    <div id="sudoku-container">
+        <div id="sudoku-grid"></div>
+        <div id="controls">
+            <button onclick="loadEasyPuzzle()">Load Easy Puzzle</button>
+            <button onclick="loadMediumPuzzle()">Load Medium Puzzle</button>
+            <button onclick="loadHardPuzzle()">Load Hard Puzzle</button>
+            <button onclick="clearGrid()">Clear Grid</button>
+            <hr>
+            <button id="solve-btn" onclick="solveSudoku()">Solve with Visualization</button>
+            <button onclick="solveInstant()">Solve Instantly</button>
+            <button onclick="stopSolving()">Stop</button>
+            <div id="speed-control">
+                <label>Speed: <span id="speed-value">10ms</span></label>
+                <input type="range" id="speed-slider" min="5" max="100" value="10" oninput="updateSpeed(this.value)">
+            </div>
+            <div id="stats">
+                <h4>Statistics:</h4>
+                <div>Steps: <span id="steps">0</span></div>
+                <div>Backtracks: <span id="backtracks">0</span></div>
+                <div>Time: <span id="time">0ms</span></div>
+                <div>Status: <span id="status">Ready</span></div>
+            </div>
+        </div>
     </div>
     <script>
-        const rows = 20, cols = 20;
-        let mode = 'wall';
-        let start = {row: 0, col: 0};
-        let end = {row: rows-1, col: cols-1};
-        let grid = [];
-        function setMode(m) { mode = m; }
-        function resetMaze() {
-            grid = Array.from({length: rows}, (_, r) => Array.from({length: cols}, (_, c) => ({row: r, col: c, wall: false})));
-            renderMaze();
+        let grid = Array.from({length: 9}, () => Array(9).fill(0));
+        let solving = false;
+        let speed = 10; // Much faster default speed
+        let steps = 0;
+        let backtracks = 0;
+        let startTime = 0;
+
+        // Predefined puzzles
+        const puzzles = {
+            easy: [
+                [5,3,0,0,7,0,0,0,0],
+                [6,0,0,1,9,5,0,0,0],
+                [0,9,8,0,0,0,0,6,0],
+                [8,0,0,0,6,0,0,0,3],
+                [4,0,0,8,0,3,0,0,1],
+                [7,0,0,0,2,0,0,0,6],
+                [0,6,0,0,0,0,2,8,0],
+                [0,0,0,4,1,9,0,0,5],
+                [0,0,0,0,8,0,0,7,9]
+            ],
+            medium: [
+                [0,0,0,6,0,0,4,0,0],
+                [7,0,0,0,0,3,6,0,0],
+                [0,0,0,0,9,1,0,8,0],
+                [0,0,0,0,0,0,0,0,0],
+                [0,5,0,1,8,0,0,0,3],
+                [0,0,0,3,0,6,0,4,5],
+                [0,4,0,2,0,0,0,6,0],
+                [9,0,3,0,0,0,0,0,0],
+                [0,2,0,0,0,0,1,0,0]
+            ],
+            hard: [
+                [0,0,0,0,0,0,6,8,0],
+                [0,0,0,0,4,6,0,0,0],
+                [7,0,0,0,0,0,0,0,9],
+                [0,5,0,0,0,0,0,0,0],
+                [0,0,0,1,0,6,0,0,0],
+                [3,0,0,0,0,0,0,0,0],
+                [0,4,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0],
+                [0,0,5,2,0,0,3,0,0]
+            ]
+        };
+
+        function initGrid() {
+            const gridElement = document.getElementById('sudoku-grid');
+            gridElement.innerHTML = '';
+            
+            for (let i = 0; i < 81; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'sudoku-cell';
+                cell.id = `cell-${Math.floor(i/9)}-${i%9}`;
+                
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = '1';
+                input.max = '9';
+                input.onchange = (e) => updateCell(Math.floor(i/9), i%9, e.target.value);
+                
+                cell.appendChild(input);
+                gridElement.appendChild(cell);
+            }
         }
-        function generateRandomMaze() {
-            grid = Array.from({length: rows}, (_, r) => Array.from({length: cols}, (_, c) => ({row: r, col: c, wall: false})));
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    if (Math.random() < 0.3 && !(r === start.row && c === start.col) && !(r === end.row && c === end.col)) {
-                        grid[r][c].wall = true;
+
+        function updateCell(row, col, value) {
+            grid[row][col] = value ? parseInt(value) : 0;
+        }
+
+        function displayGrid() {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.getElementById(`cell-${r}-${c}`);
+                    const input = cell.querySelector('input');
+                    input.value = grid[r][c] || '';
+                }
+            }
+        }
+
+        function loadPuzzle(difficulty) {
+            grid = puzzles[difficulty].map(row => [...row]);
+            displayGrid();
+            markGivenCells();
+            resetStats();
+        }
+
+        function loadEasyPuzzle() { loadPuzzle('easy'); }
+        function loadMediumPuzzle() { loadPuzzle('medium'); }
+        function loadHardPuzzle() { loadPuzzle('hard'); }
+
+        function clearGrid() {
+            grid = Array.from({length: 9}, () => Array(9).fill(0));
+            displayGrid();
+            clearVisualEffects();
+            resetStats();
+        }
+
+        function markGivenCells() {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.getElementById(`cell-${r}-${c}`);
+                    if (grid[r][c] !== 0) {
+                        cell.classList.add('given');
+                        cell.querySelector('input').disabled = true;
+                    } else {
+                        cell.classList.remove('given');
+                        cell.querySelector('input').disabled = false;
                     }
                 }
             }
-            renderMaze();
         }
-        function renderMaze() {
-            const maze = document.getElementById('maze');
-            maze.innerHTML = '';
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    if (grid[r][c].wall) cell.classList.add('wall');
-                    if (r === start.row && c === start.col) cell.classList.add('start');
-                    if (r === end.row && c === end.col) cell.classList.add('end');
-                    cell.onclick = () => {
-                        if (mode === 'start') { start = {row: r, col: c}; renderMaze(); }
-                        else if (mode === 'end') { end = {row: r, col: c}; renderMaze(); }
-                        else if (mode === 'wall' && !(r === start.row && c === start.col) && !(r === end.row && c === end.col)) {
-                            grid[r][c].wall = !grid[r][c].wall; renderMaze();
+
+        function clearVisualEffects() {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.getElementById(`cell-${r}-${c}`);
+                    cell.classList.remove('solving', 'backtrack', 'solved');
+                }
+            }
+        }
+
+        function isValid(grid, row, col, num) {
+            // Check row
+            for (let x = 0; x < 9; x++) {
+                if (grid[row][x] === num) return false;
+            }
+            
+            // Check column
+            for (let x = 0; x < 9; x++) {
+                if (grid[x][col] === num) return false;
+            }
+            
+            // Check 3x3 box
+            const startRow = row - row % 3;
+            const startCol = col - col % 3;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (grid[i + startRow][j + startCol] === num) return false;
+                }
+            }
+            
+            return true;
+        }
+
+        function findEmptyCell(grid) {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (grid[r][c] === 0) return [r, c];
+                }
+            }
+            return null;
+        }
+
+        async function solveBacktracking(grid, visualize = true) {
+            if (!solving) return false;
+            
+            const empty = findEmptyCell(grid);
+            if (!empty) return true; // Solved!
+            
+            const [row, col] = empty;
+            
+            if (visualize) {
+                const cell = document.getElementById(`cell-${row}-${col}`);
+                cell.classList.add('solving');
+                await sleep(speed);
+            }
+            
+            for (let num = 1; num <= 9; num++) {
+                if (!solving) return false;
+                
+                if (isValid(grid, row, col, num)) {
+                    grid[row][col] = num;
+                    steps++;
+                    updateStats();
+                    
+                    if (visualize) {
+                        const cell = document.getElementById(`cell-${row}-${col}`);
+                        const input = cell.querySelector('input');
+                        input.value = num;
+                        await sleep(speed);
+                    }
+                    
+                    if (await solveBacktracking(grid, visualize)) {
+                        if (visualize) {
+                            const cell = document.getElementById(`cell-${row}-${col}`);
+                            cell.classList.remove('solving');
+                            cell.classList.add('solved');
                         }
-                    };
-                    maze.appendChild(cell);
-                }
-            }
-        }
-        function neighbors(node) {
-            const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
-            return dirs.map(([dr,dc]) => ({row: node.row+dr, col: node.col+dc}))
-                .filter(n => n.row>=0 && n.row<rows && n.col>=0 && n.col<cols && !grid[n.row][n.col].wall);
-        }
-        function heuristic(a, b) {
-            return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
-        }
-        function runAStar() {
-            for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-                const cell = document.getElementsByClassName('cell')[r*cols+c];
-                cell.classList.remove('visited', 'path');
-            }
-            let openSet = [start];
-            let cameFrom = {};
-            let gScore = Array.from({length: rows}, () => Array(cols).fill(Infinity));
-            gScore[start.row][start.col] = 0;
-            let fScore = Array.from({length: rows}, () => Array(cols).fill(Infinity));
-            fScore[start.row][start.col] = heuristic(start, end);
-            let visited = [];
-            while (openSet.length) {
-                openSet.sort((a,b) => fScore[a.row][a.col] - fScore[b.row][b.col]);
-                let current = openSet.shift();
-                visited.push(current);
-                if (current.row === end.row && current.col === end.col) {
-                    let path = [];
-                    let temp = current;
-                    while (cameFrom[temp.row+','+temp.col]) {
-                        path.push(temp);
-                        temp = cameFrom[temp.row+','+temp.col];
+                        return true;
                     }
-                    path.push(start);
-                    path.reverse();
-                    for (const node of path) {
-                        const idx = node.row*cols+node.col;
-                        document.getElementsByClassName('cell')[idx].classList.add('path');
-                    }
-                    return;
-                }
-                for (const neighbor of neighbors(current)) {
-                    let tentative_gScore = gScore[current.row][current.col] + 1;
-                    if (tentative_gScore < gScore[neighbor.row][neighbor.col]) {
-                        cameFrom[neighbor.row+','+neighbor.col] = current;
-                        gScore[neighbor.row][neighbor.col] = tentative_gScore;
-                        fScore[neighbor.row][neighbor.col] = tentative_gScore + heuristic(neighbor, end);
-                        if (!openSet.some(n => n.row === neighbor.row && n.col === neighbor.col)) {
-                            openSet.push(neighbor);
-                        }
+                    
+                    // Backtrack
+                    grid[row][col] = 0;
+                    backtracks++;
+                    updateStats();
+                    
+                    if (visualize) {
+                        const cell = document.getElementById(`cell-${row}-${col}`);
+                        cell.classList.remove('solving');
+                        cell.classList.add('backtrack');
+                        const input = cell.querySelector('input');
+                        input.value = '';
+                        await sleep(speed);
+                        cell.classList.remove('backtrack');
                     }
                 }
             }
-            for (const node of visited) {
-                const idx = node.row*cols+node.col;
-                document.getElementsByClassName('cell')[idx].classList.add('visited');
-            }
-            alert('No path found!');
+            
+            return false;
         }
-        resetMaze();
+
+        async function solveSudoku() {
+            if (solving) return;
+            
+            solving = true;
+            startTime = Date.now();
+            resetStats();
+            clearVisualEffects();
+            document.getElementById('solve-btn').disabled = true;
+            document.getElementById('status').textContent = 'Solving...';
+            
+            const success = await solveBacktracking(grid, true);
+            
+            solving = false;
+            document.getElementById('solve-btn').disabled = false;
+            document.getElementById('status').textContent = success ? 'Solved!' : 'No solution found';
+            
+            if (success) {
+                // Mark all cells as solved
+                for (let r = 0; r < 9; r++) {
+                    for (let c = 0; c < 9; c++) {
+                        const cell = document.getElementById(`cell-${r}-${c}`);
+                        cell.classList.add('solved');
+                    }
+                }
+            }
+        }
+
+        function solveInstant() {
+            resetStats();
+            startTime = Date.now();
+            
+            const gridCopy = grid.map(row => [...row]);
+            const success = solveBacktrackingInstant(gridCopy);
+            
+            if (success) {
+                grid = gridCopy;
+                displayGrid();
+                document.getElementById('status').textContent = 'Solved Instantly!';
+                updateStats();
+            } else {
+                document.getElementById('status').textContent = 'No solution found';
+            }
+        }
+
+        function solveBacktrackingInstant(grid) {
+            const empty = findEmptyCell(grid);
+            if (!empty) return true;
+            
+            const [row, col] = empty;
+            
+            for (let num = 1; num <= 9; num++) {
+                if (isValid(grid, row, col, num)) {
+                    grid[row][col] = num;
+                    steps++;
+                    
+                    if (solveBacktrackingInstant(grid)) {
+                        return true;
+                    }
+                    
+                    grid[row][col] = 0;
+                    backtracks++;
+                }
+            }
+            
+            return false;
+        }
+
+        function stopSolving() {
+            solving = false;
+        }
+
+        function updateSpeed(value) {
+            speed = parseInt(value);
+            document.getElementById('speed-value').textContent = value + 'ms';
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function resetStats() {
+            steps = 0;
+            backtracks = 0;
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('steps').textContent = steps;
+            document.getElementById('backtracks').textContent = backtracks;
+            const elapsed = Date.now() - startTime;
+            document.getElementById('time').textContent = elapsed + 'ms';
+        }
+
+        // Initialize the grid on page load
+        initGrid();
+        loadEasyPuzzle();
     </script>
 </body>
 </html>

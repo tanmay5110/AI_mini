@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <m        .sudoku-cell.solving { background: #ffeb3b; animation: pulse 0.05s; }
+        .sudoku-cell.backtrack { background: #f44336; animation: shake 0.05s; }a charset="UTF-8">
+    <meta n            font-size: 20px;me="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sudoku Solver - Backtracking Algorithm</title>
     <style>
         body { 
@@ -23,8 +24,8 @@
         }
         #sudoku-grid { 
             display: grid; 
-            grid-template-columns: repeat(9, 60px); 
-            grid-template-rows: repeat(9, 60px); 
+            grid-template-columns: repeat(9, 50px); 
+            grid-template-rows: repeat(9, 50px); 
             gap: 2px; 
             border: 2px solid #000; 
             background: #000; 
@@ -103,7 +104,7 @@
     <script>
         let grid = Array.from({length: 9}, () => Array(9).fill(0));
         let solving = false;
-        let speed = 2.4; // Fixed speed: 4200 steps in ~10 seconds
+        let speed = 0.8; // Much faster: 4200 steps in ~3.5 seconds
         let steps = 0;
         let backtracks = 0;
         let startTime = 0;
@@ -186,11 +187,21 @@
             resetStats();
         }
 
-        function loadEasyPuzzle() { loadPuzzle('easy'); }
-        function loadMediumPuzzle() { loadPuzzle('medium'); }
-        function loadHardPuzzle() { loadPuzzle('hard'); }
+        function loadEasyPuzzle() { 
+            stopSolving();
+            loadPuzzle('easy'); 
+        }
+        function loadMediumPuzzle() { 
+            stopSolving();
+            loadPuzzle('medium'); 
+        }
+        function loadHardPuzzle() { 
+            stopSolving();
+            loadPuzzle('hard'); 
+        }
 
         function clearGrid() {
+            stopSolving();
             grid = Array.from({length: 9}, () => Array(9).fill(0));
             displayGrid();
             clearVisualEffects();
@@ -338,6 +349,8 @@
 
         function stopSolving() {
             solving = false;
+            document.getElementById('solve-btn').disabled = false;
+            clearVisualEffects();
         }
 
         function sleep(ms) {

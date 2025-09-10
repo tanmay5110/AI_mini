@@ -1,0 +1,8 @@
+# Ignore nested AI_mini folder
+AI_mini/
+
+# Ignore common files
+.DS_Store
+Thumbs.db
+*.log
+node_modules/

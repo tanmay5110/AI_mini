@@ -73,9 +73,24 @@
             border-radius: 5px; 
             cursor: pointer; 
             font-size: 14px; 
+            transition: all 0.3s ease;
+            margin: 2px 0;
         }
-        button:hover { background: #1976d2; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
+        button:hover { 
+            background: #1976d2; 
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+        h3, h4 { 
+            color: #333; 
+            margin: 10px 0 5px 0; 
+            font-size: 16px;
+        }
+        small { 
+            color: #666; 
+            font-style: italic; 
+        }
         #stats { 
             background: #fff; 
             padding: 15px; 
@@ -87,28 +102,52 @@
     </style>
 </head>
 <body>
-    <h2>Sudoku Solver - Backtracking Algorithm Visualizer</h2>
+    <h2>🧩 Sudoku Solver - Backtracking Algorithm Visualizer</h2>
     <div id="sudoku-container">
         <div id="sudoku-grid"></div>
         <div id="controls">
-            <button onclick="loadEasyPuzzle()">Load Easy Puzzle</button>
-            <button onclick="loadMediumPuzzle()">Load Medium Puzzle</button>
-            <button onclick="loadHardPuzzle()">Load Hard Puzzle</button>
-            <button onclick="clearGrid()">Clear Grid</button>
+            <!-- Puzzle Loading Controls -->
+            <h3>📋 Load Puzzles</h3>
+            <button onclick="loadEasyPuzzle()" title="Load an easy puzzle with more given numbers">🟢 Easy Puzzle</button>
+            <button onclick="loadMediumPuzzle()" title="Load a medium difficulty puzzle">🟡 Medium Puzzle</button>
+            <button onclick="loadHardPuzzle()" title="Load a challenging puzzle with fewer clues">🔴 Hard Puzzle</button>
+            <button onclick="clearGrid()" title="Clear the grid to enter your own puzzle">🗑️ Clear Grid</button>
+            
             <hr>
-            <button id="solve-btn" onclick="solveSudoku()">Solve with Visualization</button>
-            <button onclick="solveInstant()">Solve Instantly</button>
-            <button onclick="stopSolving()">Stop</button>
+            
+            <!-- AI Solver Controls -->
+            <h3>🤖 AI Solver</h3>
+            <button id="solve-btn" onclick="solveSudoku()" title="Watch the backtracking algorithm solve step-by-step">🎬 Solve with Animation</button>
+            <button onclick="solveInstant()" title="Solve immediately without animation - shows final result instantly">⚡ Solve Instantly</button>
+            <button onclick="stopSolving()" title="Stop the current solving process">⏹️ Stop</button>
+            
+            <!-- Speed Control -->
             <div id="speed-control">
+                <h4>🎚️ Animation Speed</h4>
                 <label>Speed: <span id="speed-value">1ms</span></label>
-                <input type="range" id="speed-slider" min="1" max="20" value="1" oninput="updateSpeed(this.value)">
+                <input type="range" id="speed-slider" min="1" max="20" value="1" oninput="updateSpeed(this.value)" 
+                       title="1ms = Very Fast, 20ms = Slower (easier to follow)">
+                <small>💡 Lower = Faster visualization</small>
             </div>
+            
+            <!-- Statistics -->
             <div id="stats">
-                <h4>Statistics:</h4>
-                <div>Steps: <span id="steps">0</span></div>
-                <div>Backtracks: <span id="backtracks">0</span></div>
-                <div>Time: <span id="time">0ms</span></div>
-                <div>Status: <span id="status">Ready</span></div>
+                <h4>📊 Algorithm Statistics:</h4>
+                <div title="Number of cells the algorithm attempted to fill">🔢 Steps: <span id="steps">0</span></div>
+                <div title="Times the algorithm had to undo and try different numbers">⬅️ Backtracks: <span id="backtracks">0</span></div>
+                <div title="Total time taken to solve the puzzle">⏱️ Time: <span id="time">0ms</span></div>
+                <div title="Current solving status">📍 Status: <span id="status">Ready</span></div>
+            </div>
+            
+            <!-- Instructions -->
+            <div style="background: #f0f8ff; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                <h4>📝 How to Use:</h4>
+                <ul style="font-size: 12px; margin: 5px 0;">
+                    <li><strong>Manual:</strong> Click cells and type 1-9</li>
+                    <li><strong>Watch AI:</strong> Use "Solve with Animation"</li>
+                    <li><strong>Quick:</strong> Use "Solve Instantly"</li>
+                    <li><strong>Speed:</strong> Adjust slider for animation speed</li>
+                </ul>
             </div>
         </div>
     </div>

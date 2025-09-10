@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Pathfinding Visualizer (A*)</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; }
+        #maze { display: grid; grid-template-columns: repeat(20, 25px); grid-gap: 2px; margin: 30px auto; width: max-content; }
+        .cell { width: 25px; height: 25px; background: #fff; border: 1px solid #ccc; cursor: pointer; }
+        .cell.wall { background: #333; }
+        .cell.start { background: #4caf50; }
+        .cell.end { background: #e91e63; }
+        .cell.visited { background: #90caf9; }
+        .cell.path { background: #ffd600; }
+        #controls { text-align: center; margin-top: 20px; }
+        button { margin: 0 5px; padding: 8px 16px; }
+    </style>
+</head>
+<body>
+    <h2 style="text-align:center;">Maze Pathfinding Visualizer (A*)</h2>
+    <div id="maze"></div>
+    <div id="controls">
+    <button onclick="setMode('start')">Set Start</button>
+    <button onclick="setMode('end')">Set End</button>
+    <button onclick="setMode('wall')">Draw Walls</button>
+    <button onclick="runAStar()">Run A*</button>
+    <button onclick="generateRandomMaze()">Random Maze</button>
+    <button onclick="resetMaze()">Reset</button>
+    </div>
+    <script>
+        const rows = 20, cols = 20;
+        let mode = 'wall';
+        let start = {row: 0, col: 0};
+        let end = {row: rows-1, col: cols-1};
+        let grid = [];
+        function setMode(m) { mode = m; }
+        function resetMaze() {
+            grid = Array.from({length: rows}, (_, r) => Array.from({length: cols}, (_, c) => ({row: r, col: c, wall: false})));
+            renderMaze();
+        }
+        function generateRandomMaze() {
+            grid = Array.from({length: rows}, (_, r) => Array.from({length: cols}, (_, c) => ({row: r, col: c, wall: false})));
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (Math.random() < 0.3 && !(r === start.row && c === start.col) && !(r === end.row && c === end.col)) {
+                        grid[r][c].wall = true;
+                    }
+                }
+            }
+            renderMaze();
+        }
+        function renderMaze() {
+            const maze = document.getElementById('maze');
+            maze.innerHTML = '';
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (grid[r][c].wall) cell.classList.add('wall');
+                    if (r === start.row && c === start.col) cell.classList.add('start');
+                    if (r === end.row && c === end.col) cell.classList.add('end');
+                    cell.onclick = () => {
+                        if (mode === 'start') { start = {row: r, col: c}; renderMaze(); }
+                        else if (mode === 'end') { end = {row: r, col: c}; renderMaze(); }
+                        else if (mode === 'wall' && !(r === start.row && c === start.col) && !(r === end.row && c === end.col)) {
+                            grid[r][c].wall = !grid[r][c].wall; renderMaze();
+                        }
+                    };
+                    maze.appendChild(cell);
+                }
+            }
+        }
+        function neighbors(node) {
+            const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
+            return dirs.map(([dr,dc]) => ({row: node.row+dr, col: node.col+dc}))
+                .filter(n => n.row>=0 && n.row<rows && n.col>=0 && n.col<cols && !grid[n.row][n.col].wall);
+        }
+        function heuristic(a, b) {
+            return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
+        }
+        function runAStar() {
+            for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+                const cell = document.getElementsByClassName('cell')[r*cols+c];
+                cell.classList.remove('visited', 'path');
+            }
+            let openSet = [start];
+            let cameFrom = {};
+            let gScore = Array.from({length: rows}, () => Array(cols).fill(Infinity));
+            gScore[start.row][start.col] = 0;
+            let fScore = Array.from({length: rows}, () => Array(cols).fill(Infinity));
+            fScore[start.row][start.col] = heuristic(start, end);
+            let visited = [];
+            while (openSet.length) {
+                openSet.sort((a,b) => fScore[a.row][a.col] - fScore[b.row][b.col]);
+                let current = openSet.shift();
+                visited.push(current);
+                if (current.row === end.row && current.col === end.col) {
+                    let path = [];
+                    let temp = current;
+                    while (cameFrom[temp.row+','+temp.col]) {
+                        path.push(temp);
+                        temp = cameFrom[temp.row+','+temp.col];
+                    }
+                    path.push(start);
+                    path.reverse();
+                    for (const node of path) {
+                        const idx = node.row*cols+node.col;
+                        document.getElementsByClassName('cell')[idx].classList.add('path');
+                    }
+                    return;
+                }
+                for (const neighbor of neighbors(current)) {
+                    let tentative_gScore = gScore[current.row][current.col] + 1;
+                    if (tentative_gScore < gScore[neighbor.row][neighbor.col]) {
+                        cameFrom[neighbor.row+','+neighbor.col] = current;
+                        gScore[neighbor.row][neighbor.col] = tentative_gScore;
+                        fScore[neighbor.row][neighbor.col] = tentative_gScore + heuristic(neighbor, end);
+                        if (!openSet.some(n => n.row === neighbor.row && n.col === neighbor.col)) {
+                            openSet.push(neighbor);
+                        }
+                    }
+                }
+            }
+            for (const node of visited) {
+                const idx = node.row*cols+node.col;
+                document.getElementsByClassName('cell')[idx].classList.add('visited');
+            }
+            alert('No path found!');
+        }
+        resetMaze();
+    </script>
+</body>
+</html>
